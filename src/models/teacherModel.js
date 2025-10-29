@@ -13,12 +13,14 @@ const findAll = () => {
       'User.phone',
       'GiaoVien.maGV',
       'GiaoVien.chuyenMon',
-      'GiaoVien.status',
+      'GiaoVien.status', // Lọc theo status này nếu cần
       'GiaoVien.joinedDate'
-      // Thêm các trường khác từ GiaoVien nếu cần (address, degree...)
     )
-    .where('GiaoVien.deletedAt', null) // Chỉ lấy GV chưa bị xóa mềm
-    .where('User.deletedAt', null);      // Chỉ lấy User chưa bị xóa mềm
+    // .where('GiaoVien.deletedAt', null) // XÓA DÒNG NÀY
+    // .where('User.deletedAt', null);      // XÓA DÒNG NÀY
+    // Thay vào đó, nếu muốn chỉ lấy GV active, dùng:
+    .where('GiaoVien.status', 'active') //
+    .where('User.isActive', true); //
 };
 
 /**
@@ -28,8 +30,8 @@ const findById = (id) => {
   return db('GiaoVien') //
     .join('User', 'GiaoVien.id', '=', 'User.id') //
     .where('GiaoVien.id', id)
-    .where('GiaoVien.deletedAt', null) // Đảm bảo GV chưa bị xóa
-    .where('User.deletedAt', null)      // Đảm bảo User chưa bị xóa
+    // .where('GiaoVien.deletedAt', null) // XÓA DÒNG NÀY
+    // .where('User.deletedAt', null)      // XÓA DÒNG NÀY
     .select('GiaoVien.*', 'User.username', 'User.fullName', 'User.email', 'User.phone', 'User.gender', 'User.dob', 'User.isActive') // Lấy tất cả thông tin
     .first();
 };
@@ -50,15 +52,15 @@ const create = (teacherData) => {
     const [userId] = await trx('User').insert({
       username,
       password, // TODO: Hash mật khẩu ở Controller hoặc Service Layer
-      role: 'GIAOVIEN',
+      role: 'GIAOVIEN', //
       fullName,
       email,
-      phone
-      // Thêm gender, dob nếu có từ FE
+      phone,
+      isActive: true // Mặc định active
     });
 
     // 2. Tạo GiaoVien
-    await trx('GiaoVien').insert({
+    await trx('GiaoVien').insert({ //
       id: userId,
       maGV: `GV${Date.now().toString().slice(-6)}`, // Cải thiện mã GV
       address,
@@ -80,7 +82,7 @@ const update = (id, teacherData) => {
   const { fullName, email, phone, chuyenMon, degree, status, address, avatar } = teacherData;
   // Thêm gender, dob nếu cần cập nhật User
 
-   const validStatus = ['active', 'inactive'];
+   const validStatus = ['active', 'inactive']; //
    const newStatus = validStatus.includes(status) ? status : 'active';
    const isActiveUser = (newStatus === 'active'); // User active khi GiaoVien active
 
@@ -93,7 +95,7 @@ const update = (id, teacherData) => {
     // Thêm gender, dob
     userDataToUpdate.isActive = isActiveUser; // Đồng bộ User.isActive
 
-    await trx('User').where({ id }).update(userDataToUpdate);
+    await trx('User').where({ id }).update(userDataToUpdate); //
 
     // 2. Cập nhật GiaoVien
     const teacherDataToUpdate = {};
@@ -103,30 +105,28 @@ const update = (id, teacherData) => {
     if (address !== undefined) teacherDataToUpdate.address = address;
     if (avatar !== undefined) teacherDataToUpdate.avatar = avatar;
 
-    await trx('GiaoVien').where({ id }).update(teacherDataToUpdate);
+    await trx('GiaoVien').where({ id }).update(teacherDataToUpdate); //
   });
 };
 
 /**
- * 🚫 Khóa giáo viên (Soft delete)
+ * 🚫 Khóa giáo viên (Cập nhật status và isActive)
  */
 const remove = (id) => {
-  const now = new Date();
+  // const now = new Date(); // Không cần nếu không dùng deletedAt
   return db.transaction(async (trx) => {
     // Cập nhật GiaoVien
-    await trx('GiaoVien').where({ id }).update({
+    await trx('GiaoVien').where({ id }).update({ //
         status: 'inactive',
-        deletedAt: now // Đánh dấu xóa mềm
+        // deletedAt: now // KHÔNG DÙNG
     });
     // Cập nhật User
-    await trx('User').where({ id }).update({
+    await trx('User').where({ id }).update({ //
         isActive: false,
-        deletedAt: now // Đánh dấu xóa mềm
+        // deletedAt: now // KHÔNG DÙNG
     });
-    // (Quan trọng) Xử lý các lớp đang được GV này dạy
-    // Option 1: Gán lớp cho GV khác (phức tạp)
-    // Option 2: Set giaoVienId của các lớp đó thành NULL (nếu CSDL cho phép)
-    await trx('LopHoc').where('giaoVienId', id).update({ giaoVienId: null });
+    // (QUAN TRỌNG) Set giaoVienId của các lớp đang dạy thành NULL
+    await trx('LopHoc').where('giaoVienId', id).update({ giaoVienId: null }); //
   });
 };
 

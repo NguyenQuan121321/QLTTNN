@@ -13,7 +13,7 @@ const create = (feeData) => {
     hocVienId,
     lopHocId, // Có thể null
     soTien,
-    description, // Thêm mô tả nếu DB mới có
+    // description, // Thêm mô tả nếu DB có cột này
     hanDong,
     trangThai: 'unpaid' // Mặc định
   });
@@ -38,7 +38,7 @@ const addPayment = (paymentData) => {
         hocPhiId,
         soTien: soTienThanhToan,
         phuongThuc,
-        ghiChu // Thêm ghi chú nếu DB mới có
+        ghiChu
     });
 };
 
@@ -56,7 +56,7 @@ const getTotalPaid = (hocPhiId) => {
  * 🔄 Cập nhật trạng thái của phiếu thu học phí
  */
 const updateStatus = (hocPhiId, newStatus) => {
-    const validStatus = ['unpaid', 'partial', 'paid', 'overdue'];
+    const validStatus = ['unpaid', 'partial', 'paid', 'overdue']; //
     if (!validStatus.includes(newStatus)) {
         throw new Error(`Trạng thái không hợp lệ: ${newStatus}`);
     }
@@ -92,20 +92,20 @@ const lockStudentAccounts = (studentIds) => {
     if (!studentIds || studentIds.length === 0) {
         return 0; // Không có ai để khóa
     }
-    const now = new Date(); // Dùng cho deletedAt nếu có
+    // const now = new Date(); // Dùng cho deletedAt nếu có
     return db.transaction(async (trx) => {
         // Cập nhật HocVien
         await trx('HocVien')
             .whereIn('id', studentIds)
             .update({
-                status: 'suspended',
+                status: 'suspended', // Trạng thái bị khóa do nợ
                 // deletedAt: now // Nếu dùng cột deletedAt
             });
         // Cập nhật User
         await trx('User')
             .whereIn('id', studentIds)
             .update({
-                isActive: false,
+                isActive: false, // Không cho login
                 // deletedAt: now // Nếu dùng cột deletedAt
             });
     });

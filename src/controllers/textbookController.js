@@ -52,6 +52,9 @@ exports.createTextbook = async (req, res) => {
     if (err.message.includes('là bắt buộc')) { // Lỗi validation từ Model
         return res.status(400).json({ success: false, message: err.message });
     }
+     if (err.code === 'ER_DUP_ENTRY') { // Giả sử có lỗi unique key nào đó
+       return res.status(400).json({ success: false, message: 'Lỗi trùng lặp dữ liệu.' });
+    }
     res.status(500).json({ success: false, message: 'Lỗi server khi tạo giáo trình' });
   }
 };
@@ -82,6 +85,8 @@ exports.deleteTextbook = async (req, res) => {
     res.json({ success: true, message: 'Xóa giáo trình thành công' });
   } catch (err) {
     console.error('❌ Lỗi deleteTextbook:', err);
+     // Xử lý lỗi ràng buộc nếu có (ví dụ GiaoTrinh là khóa ngoại ở đâu đó)
+     // if (err.code && err.code.includes('ER_ROW_IS_REFERENCED')) { ... }
     res.status(500).json({ success: false, message: 'Lỗi server khi xóa giáo trình' });
   }
 };

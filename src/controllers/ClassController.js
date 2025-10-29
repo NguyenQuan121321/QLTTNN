@@ -1,4 +1,4 @@
-// (MỚI) Gọi Model
+// Gọi Model
 const classModel = require('../models/classModel');
 
 /**
@@ -6,7 +6,7 @@ const classModel = require('../models/classModel');
  */
 exports.getAllClasses = async (req, res) => {
   try {
-    // (MỚI) Truyền query params (req.query) vào model để lọc
+    // Truyền query params (req.query) vào model để lọc
     const classes = await classModel.findAll(req.query);
     res.json({ success: true, data: classes });
   } catch (err) {
@@ -43,7 +43,7 @@ exports.createClass = async (req, res) => {
     res.status(201).json({ success: true, message: 'Tạo lớp học thành công', id: classId });
   } catch (err) {
     console.error('❌ Lỗi createClass:', err);
-    // (MỚI) Xử lý lỗi từ Model
+    // Xử lý lỗi từ Model
     if (err.message.includes('Sĩ số')) {
       return res.status(400).json({ success: false, message: err.message });
     }

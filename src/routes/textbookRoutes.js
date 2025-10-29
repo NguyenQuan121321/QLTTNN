@@ -5,7 +5,6 @@ const textbookController = require('../controllers/textbookController');
 const { verifyToken, requireRole } = require('../middlewares/authMiddleware'); //
 
 // Admin và Giáo viên có thể xem
-// (CẬP NHẬT) dùng textbookController (viết thường)
 router.get('/', verifyToken, requireRole(['ADMIN', 'GIAOVIEN']), textbookController.getAllTextbooks);
 router.get('/:id', verifyToken, requireRole(['ADMIN', 'GIAOVIEN']), textbookController.getTextbookById);
 

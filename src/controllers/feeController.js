@@ -1,7 +1,8 @@
 // (MỚI) Gọi Model
 const feeModel = require('../models/feeModel');
-// (Optional) Gọi studentModel nếu cần kiểm tra HV tồn tại
+// (Optional) Gọi studentModel, classModel nếu cần kiểm tra HV, Lớp tồn tại
 // const studentModel = require('../models/studentModel');
+// const classModel = require('../models/classModel');
 
 /**
  * 💸 Tạo phiếu thu học phí
@@ -11,8 +12,8 @@ exports.createFee = async (req, res) => {
      // (Optional) Validate hocVienId, lopHocId exists?
      // const { hocVienId, lopHocId } = req.body;
      // const student = await studentModel.findById(hocVienId);
-     // if (!student) { ... }
-     // if (lopHocId) { const lop = await classModel.findById(lopHocId); if(!lop) { ... } }
+     // if (!student) { return res.status(400).json({ success: false, message: 'Học viên không tồn tại' }); }
+     // if (lopHocId) { const lop = await classModel.findById(lopHocId); if(!lop) { return res.status(400).json({ success: false, message: 'Lớp học không tồn tại' }); } }
 
     await feeModel.create(req.body);
     res.status(201).json({ success: true, message: 'Tạo phiếu thu học phí thành công' });
@@ -54,10 +55,14 @@ exports.recordPayment = async (req, res) => {
     } else if (hocPhi.trangThai === 'overdue' && totalPaid < hocPhi.soTien) {
       newStatus = 'overdue'; // Vẫn giữ overdue nếu chưa đóng đủ
     }
+    // Thêm trường hợp nếu đang partial mà đóng thêm vẫn chưa đủ thì vẫn là partial
+    else if (hocPhi.trangThai === 'partial' && totalPaid < hocPhi.soTien) {
+        newStatus = 'partial';
+    }
 
 
-    // 5. Cập nhật trạng thái (Dùng Model)
-    if (newStatus !== hocPhi.trangThai) { // Chỉ update nếu trạng thái thay đổi
+    // 5. Cập nhật trạng thái (Dùng Model) - Chỉ update nếu trạng thái thay đổi
+    if (newStatus !== hocPhi.trangThai) {
        await feeModel.updateStatus(hocPhiId, newStatus);
     }
 
