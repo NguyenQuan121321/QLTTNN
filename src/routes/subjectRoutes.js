@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const subjectController = require("../controllers/SubjectController");
+// (CẬP NHẬT) đổi tên file sang camelCase
+const subjectController = require("../controllers/subjectController");
+const { verifyToken, requireRole } = require("../middlewares/authMiddleware"); //
 
-router.get("/", subjectController.getAllSubjects);
-router.get("/:id", subjectController.getSubjectById);
-router.post("/", subjectController.createSubject);
-router.put("/:id", subjectController.updateSubject);
-router.delete("/:id", subjectController.deleteSubject);
+// (CẬP NHẬT) dùng subjectController (viết thường)
+router.get("/", verifyToken, subjectController.getAllSubjects);
+router.get("/:id", verifyToken, subjectController.getSubjectById); // :id là maMonHoc
+// Chỉ ADMIN được sửa/xóa/thêm
+router.post("/", verifyToken, requireRole(['ADMIN']), subjectController.createSubject);
+router.put("/:id", verifyToken, requireRole(['ADMIN']), subjectController.updateSubject); // :id là maMonHoc
+router.delete("/:id", verifyToken, requireRole(['ADMIN']), subjectController.deleteSubject); // :id là maMonHoc
 
 module.exports = router;

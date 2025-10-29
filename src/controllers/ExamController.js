@@ -1,14 +1,14 @@
-const db = require('../config/database');
+// (MỚI) Gọi Model
+const examModel = require('../models/examModel');
+// (Optional) Gọi classModel nếu cần kiểm tra lớp tồn tại
+// const classModel = require('../models/classModel');
 
 /**
- * 📋 Lấy danh sách tất cả kỳ thi
+ * 📋 Lấy danh sách kỳ thi (có thể lọc theo lớp)
  */
 exports.getAllExams = async (req, res) => {
   try {
-    const exams = await db('Exam')
-      .select('Exam.id', 'Exam.tenKyThi', 'Exam.ngayThi', 'LopHoc.tenLop')
-      .leftJoin('LopHoc', 'Exam.lopHocId', 'LopHoc.id');
-
+    const exams = await examModel.findAll(req.query); // Truyền query params để lọc
     res.json({ success: true, data: exams });
   } catch (err) {
     console.error('❌ Lỗi getAllExams:', err);
@@ -17,16 +17,12 @@ exports.getAllExams = async (req, res) => {
 };
 
 /**
- * 🔍 Lấy chi tiết 1 kỳ thi
+ * 🔍 Lấy chi tiết kỳ thi (kèm kết quả)
  */
 exports.getExamById = async (req, res) => {
   try {
     const { id } = req.params;
-    const exam = await db('Exam')
-      .leftJoin('LopHoc', 'Exam.lopHocId', 'LopHoc.id')
-      .select('Exam.*', 'LopHoc.tenLop')
-      .where('Exam.id', id)
-      .first();
+    const exam = await examModel.findById(id);
 
     if (!exam)
       return res.status(404).json({ success: false, message: 'Không tìm thấy kỳ thi' });
@@ -43,21 +39,16 @@ exports.getExamById = async (req, res) => {
  */
 exports.createExam = async (req, res) => {
   try {
-    const { lopHocId, tenKyThi, ngayThi } = req.body;
+     // (Optional but good practice) Validate if lopHocId exists before calling model
+     // const { lopHocId } = req.body;
+     // if (lopHocId) {
+     //    const lop = await classModel.findById(lopHocId); // Use findById from classModel
+     //    if (!lop) {
+     //       return res.status(400).json({ success: false, message: `Lớp học với ID ${lopHocId} không tồn tại` });
+     //    }
+     // }
 
-    if (!lopHocId || !tenKyThi || !ngayThi)
-      return res.status(400).json({ success: false, message: 'Thiếu dữ liệu bắt buộc' });
-
-    // Kiểm tra lớp học có tồn tại không
-    const lop = await db('LopHoc').where({ id: lopHocId }).first();
-    if (!lop)
-      return res.status(400).json({ success: false, message: `Lớp học với ID ${lopHocId} không tồn tại` });
-
-    const [newExamId] = await db('Exam').insert({
-      lopHocId,
-      tenKyThi,
-      ngayThi
-    });
+    const [newExamId] = await examModel.create(req.body);
 
     res.status(201).json({
       success: true,
@@ -66,6 +57,10 @@ exports.createExam = async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Lỗi createExam:', err);
+     if (err.message.includes('Thiếu tên kỳ thi')) {
+        return res.status(400).json({ success: false, message: err.message });
+     }
+    // Handle other specific errors from model if needed
     res.status(500).json({ success: false, message: 'Lỗi server khi tạo kỳ thi' });
   }
 };
@@ -76,13 +71,7 @@ exports.createExam = async (req, res) => {
 exports.updateExam = async (req, res) => {
   try {
     const { id } = req.params;
-    const { lopHocId, tenKyThi, ngayThi } = req.body;
-
-    const updated = await db('Exam').where({ id }).update({
-      lopHocId,
-      tenKyThi,
-      ngayThi
-    });
+    const updated = await examModel.update(id, req.body);
 
     if (!updated)
       return res.status(404).json({ success: false, message: 'Không tìm thấy kỳ thi để cập nhật' });
@@ -90,6 +79,7 @@ exports.updateExam = async (req, res) => {
     res.json({ success: true, message: 'Cập nhật kỳ thi thành công' });
   } catch (err) {
     console.error('❌ Lỗi updateExam:', err);
+    // Handle specific errors from model if needed
     res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật kỳ thi' });
   }
 };
@@ -100,7 +90,7 @@ exports.updateExam = async (req, res) => {
 exports.deleteExam = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await db('Exam').where({ id }).del();
+    const deleted = await examModel.remove(id);
 
     if (!deleted)
       return res.status(404).json({ success: false, message: 'Không tìm thấy kỳ thi để xóa' });
@@ -108,6 +98,10 @@ exports.deleteExam = async (req, res) => {
     res.json({ success: true, message: 'Xóa kỳ thi thành công' });
   } catch (err) {
     console.error('❌ Lỗi deleteExam:', err);
+     // Handle potential foreign key constraint errors if ON DELETE RESTRICT is used
+     if (err.code && err.code.includes('ER_ROW_IS_REFERENCED')) { // Example error code
+        return res.status(400).json({ success: false, message: 'Không thể xóa kỳ thi vì đã có kết quả thi liên quan.' });
+     }
     res.status(500).json({ success: false, message: 'Lỗi server khi xóa kỳ thi' });
   }
 };

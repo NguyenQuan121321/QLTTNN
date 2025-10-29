@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const userCtrl = require('../controllers/UserController');
-const { verifyToken } = require('../middlewares/authMiddleware');
+// (CẬP NHẬT) đổi tên file sang camelCase
+const userController = require('../controllers/userController');
+const { verifyToken, requireRole } = require('../middlewares/authMiddleware'); //
 
-// Các route CRUD cho user
-router.get('/', verifyToken, userCtrl.getAllUsers);
-router.get('/:id', verifyToken, userCtrl.getUserById);
-router.post('/', verifyToken, userCtrl.createUser);
-router.put('/:id', verifyToken, userCtrl.updateUser);
-router.delete('/:id', verifyToken, userCtrl.deleteUser);
+// Chỉ ADMIN mới được quản lý user
+// (CẬP NHẬT) dùng userController (viết thường)
+router.get('/', verifyToken, requireRole(['ADMIN']), userController.getAllUsers);
+router.get('/:id', verifyToken, requireRole(['ADMIN']), userController.getUserById);
+router.post('/', verifyToken, requireRole(['ADMIN']), userController.createUser);
+router.put('/:id', verifyToken, requireRole(['ADMIN']), userController.updateUser);
+router.delete('/:id', verifyToken, requireRole(['ADMIN']), userController.deleteUser); // Hàm này giờ là soft delete
 
 module.exports = router;

@@ -1,24 +1,13 @@
-const db = require('../config/database');
+// (MỚI) Gọi Model thay vì gọi 'db'
+const studentModel = require('../models/studentModel');
 
 /**
  * 📋 Lấy danh sách tất cả học viên
  */
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await db('HocVien')
-      .join('User', 'HocVien.id', '=', 'User.id')
-      .select(
-        'HocVien.id',
-        'User.username',
-        'User.fullName',
-        'User.email',
-        'User.phone',
-        'HocVien.code',
-        'HocVien.address',
-        'HocVien.registrationDate',
-        'HocVien.status'
-      );
-
+    // Controller chỉ "nhờ" Model lấy dữ liệu
+    const students = await studentModel.findAll();
     res.json({ success: true, data: students });
   } catch (err) {
     console.error('❌ Lỗi getAllStudents:', err);
@@ -32,59 +21,48 @@ exports.getAllStudents = async (req, res) => {
 exports.getStudentById = async (req, res) => {
   try {
     const { id } = req.params;
-    const student = await db('HocVien')
-      .join('User', 'HocVien.id', '=', 'User.id')
-      .where('HocVien.id', id)
-      .first();
+    
+    // Controller chỉ "nhờ" Model lấy dữ liệu
+    const student = await studentModel.findById(id);
 
-    if (!student)
+    // Controller xử lý việc phản hồi
+    if (!student) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy học viên' });
-
+    }
+    
     res.json({ success: true, data: student });
+    
   } catch (err) {
-    console.error('❌ Lỗi getStudentById:', err);
-    res.status(500).json({ success: false, message: 'Lỗi server khi lấy thông tin học viên' });
+    console.error('❌ Lỗi getStudentById (chi tiết):', err);
+    res.status(500).json({ success: false, message: 'Lỗi server khi lấy thông tin chi tiết học viên' });
   }
 };
 
 /**
- * ➕ Thêm mới học viên (kèm tài khoản User)
+ * ➕ Thêm mới học viên
  */
 exports.createStudent = async (req, res) => {
   try {
-    const { username, password, fullName, email, phone, address, guardianName, guardianPhone } = req.body;
-
-    if (!username || !password)
-      return res.status(400).json({ success: false, message: 'Thiếu username hoặc password' });
-
-    // 1. Tạo User
-    const [userId] = await db('User').insert({
-      username,
-      password,
-      role: 'HOCVIEN',
-      fullName,
-      email,
-      phone
-    });
-
-    // 2. Tạo HocVien
-    const [hocVienId] = await db('HocVien').insert({
-      id: userId,
-      code: `HV${Date.now()}`,
-      address,
-      registrationDate: new Date(),
-      status: 'active',
-      guardianName,
-      guardianPhone
-    });
+    // Controller lấy dữ liệu từ request body
+    const studentData = req.body;
+    
+    // Controller "nhờ" Model tạo
+    const newStudent = await studentModel.create(studentData);
 
     res.status(201).json({
       success: true,
       message: 'Thêm học viên thành công',
-      id: hocVienId
+      id: newStudent.id
     });
   } catch (err) {
     console.error('❌ Lỗi createStudent:', err);
+    // (MỚI) Xử lý lỗi (ví dụ: Trùng lặp) mà Model đã ném ra
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ success: false, message: 'Tên đăng nhập (username) hoặc email đã tồn tại' });
+    }
+    if (err.message.includes('Thiếu Tên đăng nhập')) {
+        return res.status(400).json({ success: false, message: err.message });
+    }
     res.status(500).json({ success: false, message: 'Lỗi server khi thêm học viên' });
   }
 };
@@ -95,10 +73,10 @@ exports.createStudent = async (req, res) => {
 exports.updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, email, phone, address, status } = req.body;
+    const studentData = req.body;
 
-    await db('User').where({ id }).update({ fullName, email, phone });
-    await db('HocVien').where({ id }).update({ address, status });
+    // Controller "nhờ" Model cập nhật
+    await studentModel.update(id, studentData);
 
     res.json({ success: true, message: 'Cập nhật học viên thành công' });
   } catch (err) {
@@ -113,8 +91,9 @@ exports.updateStudent = async (req, res) => {
 exports.deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    await db('HocVien').where({ id }).update({ status: 'inactive' });
-    await db('User').where({ id }).update({ isActive: false });
+
+    // Controller "nhờ" Model khóa
+    await studentModel.remove(id);
 
     res.json({ success: true, message: 'Đã khóa học viên thành công' });
   } catch (err) {

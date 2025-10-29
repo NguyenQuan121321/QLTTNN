@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const TeacherController = require('../controllers/TeacherController');
+// (CẬP NHẬT) đổi tên file sang camelCase
+const teacherController = require('../controllers/teacherController');
+const { verifyToken, requireRole } = require('../middlewares/authMiddleware'); //
 
-router.get('/', TeacherController.getAllTeachers);
-router.get('/:id', TeacherController.getTeacherById);
-router.post('/', TeacherController.createTeacher);
-router.put('/:id', TeacherController.updateTeacher);
-router.delete('/:id', TeacherController.deleteTeacher);
+// Chỉ ADMIN được quản lý giáo viên
+// (CẬP NHẬT) dùng teacherController (viết thường)
+router.get('/', verifyToken, requireRole(['ADMIN']), teacherController.getAllTeachers);
+router.get('/:id', verifyToken, requireRole(['ADMIN']), teacherController.getTeacherById);
+router.post('/', verifyToken, requireRole(['ADMIN']), teacherController.createTeacher);
+router.put('/:id', verifyToken, requireRole(['ADMIN']), teacherController.updateTeacher);
+router.delete('/:id', verifyToken, requireRole(['ADMIN']), teacherController.deleteTeacher); // Hàm này giờ là soft delete
 
 module.exports = router;
