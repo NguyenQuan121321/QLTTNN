@@ -51,8 +51,6 @@ const findAll = (filters = {}) => {
   if (filters.classId) {
     query.where('Enrollment.lopHocId', filters.classId);
   }
-  // Thêm các filter khác nếu cần (ví dụ: status)
-
   return query.orderBy('Enrollment.enrolledAt', 'desc');
 };
 
@@ -85,24 +83,37 @@ const updateStatus = (id, status) => {
   }
 
   const updateData = { status };
-  const now = new Date();
-  if (status === 'completed') {
-    updateData.completedAt = now; // Ghi nhận ngày hoàn thành (nếu dùng DB mới)
-  } else if (status === 'withdrawn') {
-    updateData.withdrawnAt = now; // Ghi nhận ngày rút lui (nếu dùng DB mới)
-  }
-
   return db('Enrollment').where({ id }).update(updateData);
 };
 
 /**
- * 🗑️ Xóa một lượt ghi danh (Hủy ghi danh) - Cân nhắc dùng updateStatus thay thế
+ * 🗑️ Xóa một lượt ghi danh (Hủy ghi danh)
  */
 const remove = (id) => {
-  // Cảnh báo: Xóa cứng sẽ mất dấu vết. Nên dùng updateStatus('withdrawn') hơn.
-  // Nếu vẫn muốn xóa:
   return db('Enrollment').where({ id }).del();
 };
+
+// ==========================================================
+// TÔI ĐÃ THÊM HÀM CÒN THIẾU CỦA BẠN VÀO ĐÂY:
+// ==========================================================
+/**
+ * 🎯 Kiểm tra xem 1 học viên có đang ghi danh (active) trong 1 lớp học không
+ * (Hàm này được dùng bởi assignmentController và submissionController)
+ */
+const checkEnrollment = async (hocVienId, lopHocId) => {
+  // Chuyển đổi lopHocId sang số (nếu cần, vì params từ URL có thể là string)
+  const lopHocIdNum = parseInt(lopHocId, 10);
+  
+  const enrollment = await db('Enrollment')
+    .where({
+      hocVienId: hocVienId,
+      lopHocId: lopHocIdNum,
+      status: 'active' // Chỉ tính các học viên đang active
+    })
+    .first();
+  return !!enrollment; // Trả về true nếu tìm thấy, false nếu không
+};
+
 
 module.exports = {
   create,
@@ -110,5 +121,6 @@ module.exports = {
   findAll,
   findById,
   updateStatus,
-  remove
+  remove,
+  checkEnrollment // <-- VÀ THÊM VÀO EXPORTS
 };

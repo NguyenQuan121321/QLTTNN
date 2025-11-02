@@ -30,6 +30,9 @@ const feeRoutes = require('./routes/feeRoutes');
 const textbookRoutes = require('./routes/textbookRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const assignmentRoutes = require('./routes/assignmentRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
+
 
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -50,6 +53,8 @@ app.use('/api/fees', feeRoutes);
 app.use('/api/textbooks', textbookRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/submissions', submissionRoutes);
 
 app.use(errorHandler);
 
