@@ -31,6 +31,8 @@ const textbookRoutes = require('./routes/textbookRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 
+const errorHandler = require('./middlewares/errorHandler');
+
 // ------------------------------
 // 🛣️ Sử dụng routes
 // ------------------------------
@@ -48,6 +50,8 @@ app.use('/api/fees', feeRoutes);
 app.use('/api/textbooks', textbookRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+app.use(errorHandler);
 
 // ------------------------------
 // 🗄️ Kiểm tra kết nối Database (tùy chọn)
